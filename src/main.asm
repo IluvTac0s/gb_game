@@ -1,32 +1,43 @@
-INCLUDE "src/hardware.inc"
+; src/main.asm — minimal test
+INCLUDE "hardware.inc"
 
-SECTION "Start", ROM0[$100]
+SECTION "Header", ROM0[$100]
     jp Start
+    db 0
+    INCBIN "nintendo_logo.gbt"
 
+SECTION "Start", ROM0[$150]
 Start:
-    ; Turn off LCD first
-    ld a, 0
-    ldh (rLCDC), a
+    ; Turn off LCD
+    ld a,0
+    ldh [$FF40],a
 
-    ; Load tile into VRAM
+    ; Copy one tile from ROM to VRAM
     ld hl, TileData
     ld de, $8000
-    ld bc, 16       ; 1 tile = 16 bytes
-    ldir
+    ld bc, 16
+CopyLoop:
+    ld a,[hl]
+    ld [de],a
+    inc hl
+    inc de
+    dec bc
+    ld a,b
+    or c
+    jr nz, CopyLoop
 
-    ; Setup BG tilemap
-    ld hl, $9800    ; BG tilemap start
-    ld (hl), 0      ; Use tile 0
-    ld a, 0
-    ld (hl), a
+    ; Put tile 0 at top-left of BG
+    ld hl,$9800
+    ld a,0
+    ld [hl],a
 
-    ; Turn on LCD
-    ld a, %10010000 ; BG + LCD enable
-    ldh (rLCDC), a
+    ; Turn on LCD + BG
+    ld a,%10010000
+    ldh [$FF40],a
 
 Forever:
     jp Forever
 
-SECTION "TileData", ROMX[$150]
+SECTION "TileData", ROM0
 TileData:
-    INCBIN "src/tiles.gb"
+    INCBIN "tiles.gbt"
